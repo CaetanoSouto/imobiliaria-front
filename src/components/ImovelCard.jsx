@@ -1,26 +1,38 @@
+import { Link } from 'react-router-dom'
 import { formatarPreco } from '../utils/formatar'
+import { fotoCapa, rotuloFinalidade, valorImovel } from '../utils/imoveis'
+import FotoComFallback from './FotoComFallback'
 
-// Campos como tipo, bairro, cidade, finalidade e foto ainda não existem no backend;
-// o card já está preparado para exibi-los assim que forem adicionados.
 export default function ImovelCard({ imovel }) {
-  const foto = imovel.fotoCapa || imovel.fotos?.[0]?.caminho
-  const local = [imovel.bairro?.nome, imovel.cidade || imovel.bairro?.cidade].filter(Boolean).join(', ')
-  const finalidade = imovel.finalidade === 'VENDA' ? 'Venda' : 'Aluguel'
+  const local = [imovel.bairro?.nome, imovel.bairro?.cidade].filter(Boolean).join(', ')
+  const meta = [
+    imovel.dormitorios ? `${imovel.dormitorios} dorm.` : null,
+    imovel.banheiros ? `${imovel.banheiros} banh.` : null,
+    imovel.garagem ? `${imovel.garagem} vaga${imovel.garagem > 1 ? 's' : ''}` : null,
+    imovel.areaTotal ? `${Number(imovel.areaTotal)} m²` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
 
   return (
-    <article className="card">
+    <Link to={`/imoveis/${imovel.id}`} className="card" aria-label={imovel.titulo || `Imóvel ${imovel.id}`}>
       <div className="card__foto">
-        {foto ? <img src={foto} alt={imovel.titulo || 'Foto do imóvel'} /> : <span>Sem foto</span>}
-        <span className="card__selo">{finalidade}</span>
+        <FotoComFallback src={fotoCapa(imovel)} alt={imovel.titulo || 'Foto do imóvel'} />
+        <span className={`card__selo${imovel.finalidade === 'VENDA' ? ' card__selo--venda' : ''}`}>
+          {rotuloFinalidade(imovel.finalidade)}
+        </span>
       </div>
       <div className="card__corpo">
-        {imovel.tipo?.nome && <p className="card__tipo">{imovel.tipo.nome}</p>}
+        {imovel.tipoImovel?.nome && <p className="card__tipo">{imovel.tipoImovel.nome}</p>}
         <h2 className="card__titulo">{imovel.titulo || `Imóvel nº ${imovel.id}`}</h2>
         {local && <p className="card__local">{local}</p>}
-        {imovel.descricao && <p className="card__descricao">{imovel.descricao}</p>}
-        <p className="card__preco">{formatarPreco(imovel.precoAluguel)}</p>
+        {meta && <p className="card__meta">{meta}</p>}
+        <p className="card__preco">
+          {formatarPreco(valorImovel(imovel))}
+          {imovel.finalidade !== 'VENDA' && valorImovel(imovel) !== null && <small> /mês</small>}
+        </p>
         <p className="card__codigo">Cód. {imovel.id}</p>
       </div>
-    </article>
+    </Link>
   )
 }
