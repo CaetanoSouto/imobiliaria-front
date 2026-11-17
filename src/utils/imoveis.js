@@ -21,7 +21,7 @@ export function estaDisponivel(imovel) {
 }
 
 // Caminhos relativos (/uploads/...) passam pela mesma base da API (proxy do Vite em dev).
-function urlFoto(url) {
+export function urlFoto(url) {
   return /^https?:\/\//.test(url) ? url : `${API_URL}${url.startsWith('/') ? '' : '/'}${url}`
 }
 

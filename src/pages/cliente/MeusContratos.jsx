@@ -4,6 +4,7 @@ import ConfirmarExclusao from '../../components/ConfirmarExclusao'
 import { Carregando, MensagemErro, SemResultados } from '../../components/Feedback'
 import { useCarregar } from '../../hooks/useCarregar'
 import { assinarContrato, listarMeusContratos } from '../../services/clienteService'
+import { baixarPdfContrato } from '../../utils/download'
 import { mensagemErro } from '../../utils/erros'
 import { formatarData, formatarPreco, rotuloContrato } from '../../utils/formatar'
 import { rotuloFinalidade } from '../../utils/imoveis'
@@ -14,6 +15,21 @@ export default function MeusContratos() {
   const [erroAssinar, setErroAssinar] = useState(null)
   const [assinando, setAssinando] = useState(false)
   const [sucesso, setSucesso] = useState(null)
+  const [baixando, setBaixando] = useState(null)
+  const [erroPdf, setErroPdf] = useState(null)
+
+  const baixar = async (contrato) => {
+    setSucesso(null)
+    setErroPdf(null)
+    setBaixando(contrato.id)
+    try {
+      await baixarPdfContrato(contrato.id)
+    } catch (e) {
+      setErroPdf(mensagemErro(e))
+    } finally {
+      setBaixando(null)
+    }
+  }
 
   const confirmar = async () => {
     setAssinando(true)
@@ -37,6 +53,12 @@ export default function MeusContratos() {
       {sucesso && (
         <p className="aviso aviso--sucesso" role="status">
           {sucesso}
+        </p>
+      )}
+
+      {erroPdf && (
+        <p className="aviso aviso--erro" role="alert">
+          {erroPdf}
         </p>
       )}
 
@@ -74,6 +96,16 @@ export default function MeusContratos() {
                   </td>
                   <td>{formatarData(c.dataAssinatura)}</td>
                   <td className="tabela__acoes">
+                    {(c.status === 'AGUARDANDO_ASSINATURA' || c.status === 'ASSINADO') && (
+                      <button
+                        type="button"
+                        className="botao botao--secundario botao--pequeno"
+                        disabled={baixando === c.id}
+                        onClick={() => baixar(c)}
+                      >
+                        {baixando === c.id ? 'Baixando...' : 'Baixar PDF'}
+                      </button>
+                    )}
                     {c.status === 'AGUARDANDO_ASSINATURA' && (
                       <button
                         type="button"

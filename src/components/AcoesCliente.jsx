@@ -5,6 +5,7 @@ import { adicionarFavorito, criarOferta, listarFavoritos, removerFavorito } from
 import { mensagemErro } from '../utils/erros'
 import { formatarPreco } from '../utils/formatar'
 import { rotuloFinalidade, valorImovel } from '../utils/imoveis'
+import { lerNumero } from '../utils/validacao'
 
 // Ações do detalhe do imóvel para o cliente: favoritar e fazer oferta.
 // "Fazer oferta" só existe para imóveis DISPONÍVEIS (reservado, alugado e vendido não mostram o botão).
@@ -67,8 +68,8 @@ export default function AcoesCliente({ imovel }) {
   const enviar = async (e) => {
     e.preventDefault()
     setErroApi(null)
-    const numero = Number(String(valor).replace(',', '.'))
-    if (!String(valor).trim() || !Number.isFinite(numero) || numero <= 0) {
+    const numero = lerNumero(valor)
+    if (numero === null || numero <= 0) {
       setErroValor('Informe um valor válido, maior que zero.')
       return
     }
