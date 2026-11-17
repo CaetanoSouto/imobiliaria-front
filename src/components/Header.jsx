@@ -41,12 +41,27 @@ export default function Header() {
               <NavLink to="/cliente/contratos">Contratos</NavLink>
             </>
           )}
+          {usuario?.tipo === 'CORRETOR' && (
+            <>
+              <NavLink to="/corretor" end>
+                Painel
+              </NavLink>
+              <NavLink to="/corretor/ofertas">Ofertas</NavLink>
+              <NavLink to="/corretor/contratos">Contratos</NavLink>
+            </>
+          )}
           {usuario?.tipo === 'ADMIN' && (
             <>
               <NavLink to="/admin" end>
                 Painel
               </NavLink>
+              <NavLink to="/admin/ofertas">Ofertas</NavLink>
+              <NavLink to="/admin/contratos">Contratos</NavLink>
+              <NavLink to="/admin/imoveis">Imóveis</NavLink>
+              <NavLink to="/admin/fotos">Fotos</NavLink>
               <NavLink to="/admin/bairros">Bairros</NavLink>
+              <NavLink to="/admin/tipos">Tipos</NavLink>
+              <NavLink to="/admin/usuarios">Usuários</NavLink>
             </>
           )}
           {autenticado ? (

@@ -27,6 +27,7 @@ const ROTULOS_OFERTA = {
 }
 
 const ROTULOS_CONTRATO = {
+  AGUARDANDO_APROVACAO: 'Aguardando aprovação',
   AGUARDANDO_ASSINATURA: 'Aguardando assinatura',
   ASSINADO: 'Assinado',
   CANCELADO: 'Cancelado',
