@@ -1,0 +1,486 @@
+{
+  "info": {
+    "_postman_id": "c3f4e5d6-a7b8-4c9d-8e0f-1a2b3c4d5e6f",
+    "name": "Habitare Imóveis - Testes da API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01 - GET /imoveis sem token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('01 - Status 200: listagem publica de imoveis (sem token)', function () {",
+              "    pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/imoveis",
+          "host": ["{{baseUrl}}"],
+          "path": ["imoveis"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "02 - POST /auth/login (Admin)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('02 - Status 200: login admin bem-sucedido', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var json = pm.response.json();",
+              "pm.test('02 - tipo = ADMIN no retorno', function () {",
+              "    pm.expect(json.tipo).to.eql('ADMIN');",
+              "});",
+              "if (json && json.token) {",
+              "    pm.collectionVariables.set('tokenAdmin', json.token);",
+              "    console.log('tokenAdmin salvo.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"admin@email.com\",\n  \"password\": \"123\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "login"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "03 - Validar estrutura do JWT",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "var token = pm.collectionVariables.get('tokenAdmin') || '';",
+              "var parts = token.split('.');",
+              "pm.test('03 - Token tem exatamente 3 partes (header.payload.signature)', function () {",
+              "    pm.expect(parts.length).to.eql(3);",
+              "});",
+              "pm.test('03 - Payload decodificado contem sub, roles e exp', function () {",
+              "    pm.expect(parts.length).to.be.gte(2);",
+              "    var b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');",
+              "    while (b64.length % 4) { b64 += '='; }",
+              "    var payload = JSON.parse(atob(b64));",
+              "    pm.expect(payload).to.have.property('sub');",
+              "    pm.expect(payload).to.have.property('roles');",
+              "    pm.expect(payload).to.have.property('exp');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            { "key": "token", "value": "{{tokenAdmin}}", "type": "string" }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/imoveis",
+          "host": ["{{baseUrl}}"],
+          "path": ["imoveis"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "04 - POST /bairros sem token",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('04 - Status 401: nao autorizado sem token', function () {",
+              "    pm.response.to.have.status(401);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"Bairro Sem Token\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/bairros",
+          "host": ["{{baseUrl}}"],
+          "path": ["bairros"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "05 - POST /bairros com tokenAdmin",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('05 - Status 201: bairro criado com sucesso', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "var json = pm.response.json();",
+              "if (json && json.id) {",
+              "    pm.collectionVariables.set('bairroId', json.id);",
+              "    console.log('bairroId salvo: ' + json.id);",
+              "} else {",
+              "    pm.sendRequest({",
+              "        url: pm.collectionVariables.get('baseUrl') + '/bairros',",
+              "        method: 'GET',",
+              "        header: [{ key: 'Authorization', value: 'Bearer ' + pm.collectionVariables.get('tokenAdmin') }]",
+              "    }, function (err, res) {",
+              "        if (!err) {",
+              "            var list = res.json();",
+              "            var found = Array.isArray(list) ? list.find(function (b) {",
+              "                return b.nome === 'Bairro Teste Automatizado';",
+              "            }) : null;",
+              "            if (found) {",
+              "                pm.collectionVariables.set('bairroId', found.id);",
+              "                console.log('bairroId salvo via GET fallback: ' + found.id);",
+              "            }",
+              "        }",
+              "    });",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            { "key": "token", "value": "{{tokenAdmin}}", "type": "string" }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"Bairro Teste Automatizado\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/bairros",
+          "host": ["{{baseUrl}}"],
+          "path": ["bairros"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "06 - POST /users/register (Cliente USER)",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.collectionVariables.set('emailCliente', 'cliente.teste.' + Date.now() + '@email.com');"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('06 - Status 201: cliente registrado com sucesso', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "var json = pm.response.json();",
+              "if (json && json.id) {",
+              "    pm.collectionVariables.set('clienteId', json.id);",
+              "    console.log('clienteId salvo: ' + json.id);",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            { "key": "token", "value": "{{tokenAdmin}}", "type": "string" }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"Cliente Teste\",\n  \"email\": \"{{emailCliente}}\",\n  \"password\": \"123\",\n  \"tipo\": \"USER\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/users/register",
+          "host": ["{{baseUrl}}"],
+          "path": ["users", "register"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "07 - POST /auth/login (Cliente USER)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('07 - Status 200: login cliente bem-sucedido', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "var json = pm.response.json();",
+              "pm.test('07 - tipo = USER no retorno', function () {",
+              "    pm.expect(json.tipo).to.eql('USER');",
+              "});",
+              "if (json && json.token) {",
+              "    pm.collectionVariables.set('tokenCliente', json.token);",
+              "    console.log('tokenCliente salvo.');",
+              "}"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": { "type": "noauth" },
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{emailCliente}}\",\n  \"password\": \"123\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": ["{{baseUrl}}"],
+          "path": ["auth", "login"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "08 - POST /bairros com tokenCliente",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('08 - Status 403: proibido para perfil USER', function () {",
+              "    pm.response.to.have.status(403);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            { "key": "token", "value": "{{tokenCliente}}", "type": "string" }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"Bairro Nao Autorizado\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/bairros",
+          "host": ["{{baseUrl}}"],
+          "path": ["bairros"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "09 - POST /bairros com token adulterado",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Pega o tokenAdmin, troca o payload (parte do meio) por um falso,",
+              "// mantém o header e a assinatura originais => JWT invalido para o servidor.",
+              "var token = pm.collectionVariables.get('tokenAdmin') || '';",
+              "var parts = token.split('.');",
+              "if (parts.length === 3) {",
+              "    var fake = { sub: 'hacker@evil.com', roles: ['ADMIN'], exp: 9999999999 };",
+              "    var fakeB64 = btoa(JSON.stringify(fake))",
+              "        .split('+').join('-')",
+              "        .split('/').join('_')",
+              "        .split('=').join('');",
+              "    pm.collectionVariables.set('tokenAdulterated', parts[0] + '.' + fakeB64 + '.' + parts[2]);",
+              "    console.log('Token adulterado gerado (payload trocado, assinatura original mantida).');",
+              "} else {",
+              "    pm.collectionVariables.set('tokenAdulterated', 'x.invalido.y');",
+              "    console.warn('tokenAdmin indisponivel; usando token invalido generico.');",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('09 - Status 401: token adulterado rejeitado pelo servidor', function () {",
+              "    pm.response.to.have.status(401);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            { "key": "token", "value": "{{tokenAdulterated}}", "type": "string" }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"nome\": \"Bairro Hacker\"\n}",
+          "options": { "raw": { "language": "json" } }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/bairros",
+          "host": ["{{baseUrl}}"],
+          "path": ["bairros"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "99 - Limpeza",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "// Apaga o usuario cliente criado no passo 06.",
+              "// AJUSTE o endpoint se a sua API usar caminho diferente (ex.: /admin/users/:id).",
+              "var cId  = pm.collectionVariables.get('clienteId');",
+              "var base = pm.collectionVariables.get('baseUrl');",
+              "var tok  = pm.collectionVariables.get('tokenAdmin');",
+              "if (cId && base && tok) {",
+              "    pm.sendRequest({",
+              "        url: base + '/users/' + cId,",
+              "        method: 'DELETE',",
+              "        header: [{ key: 'Authorization', value: 'Bearer ' + tok }]",
+              "    }, function (err, res) {",
+              "        if (err) {",
+              "            console.warn('Erro ao deletar usuario: ' + err);",
+              "        } else {",
+              "            console.log('Usuario deletado. HTTP ' + res.status);",
+              "        }",
+              "    });",
+              "} else {",
+              "    console.warn('clienteId ou tokenAdmin nao definidos. Pulando exclusao do usuario.');",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('99 - Bairro de teste removido com sucesso (200 ou 204)', function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
+              "});",
+              "// Limpar todas as variaveis de sessao ao final da execucao",
+              "['tokenAdmin', 'tokenCliente', 'bairroId', 'emailCliente', 'clienteId', 'tokenAdulterated'].forEach(function (k) {",
+              "    pm.collectionVariables.set(k, '');",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            { "key": "token", "value": "{{tokenAdmin}}", "type": "string" }
+          ]
+        },
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/bairros/{{bairroId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["bairros", "{{bairroId}}"]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl",          "value": "http://localhost:8080", "type": "string" },
+    { "key": "tokenAdmin",       "value": "",                     "type": "string" },
+    { "key": "tokenCliente",     "value": "",                     "type": "string" },
+    { "key": "bairroId",         "value": "",                     "type": "string" },
+    { "key": "emailCliente",     "value": "",                     "type": "string" },
+    { "key": "clienteId",        "value": "",                     "type": "string" },
+    { "key": "tokenAdulterated", "value": "",                     "type": "string" }
+  ]
+}

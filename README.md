@@ -1,6 +1,9 @@
-# Habitare Imóveis — Front-end
+# Habitare Imóveis
 
-Front-end do sistema da imobiliária (Trabalho Final), feito com **React + Vite**, consumindo a API REST em **Spring Boot** desenvolvida na disciplina.
+Sistema da imobiliária (Trabalho Final). Este repositório tem as duas partes:
+
+- **Front-end** (raiz do repositório): **React + Vite**.
+- **Backend** (pasta [backend/](backend)): API REST em **Spring Boot** com MySQL.
 
 O sistema tem uma vitrine pública de imóveis e três áreas privadas, uma para cada perfil: **cliente**, **corretor** e **administrador**.
 
@@ -15,20 +18,23 @@ O sistema tem uma vitrine pública de imóveis e três áreas privadas, uma para
 ## Pré-requisitos
 
 - Node.js 20 ou superior
-- Backend em Java 17+ e Maven (projeto `demo`, em outra pasta)
+- Java 17+ e Maven, para o backend (pasta [backend/](backend))
 - MySQL em `localhost:3306` (usuário `root`, sem senha). O banco `imobiliaria` é criado sozinho.
 
 ## Como rodar
 
 ### 1. Backend
 
-Com o MySQL ligado, na pasta do backend:
+Com o MySQL ligado, a partir da raiz do repositório:
 
 ```bash
+cd backend
 mvn spring-boot:run
 ```
 
 Se o seu usuário ou senha do MySQL forem outros, defina `DB_USER` e `DB_PASSWORD` antes de subir.
+
+A chave que assina os tokens JWT vem da variável `JWT_SECRET`. Sem ela, o backend usa um valor de desenvolvimento que é **público** (está neste repositório): serve para estudar e rodar localmente, mas em qualquer uso real defina `JWT_SECRET` com uma chave longa e aleatória.
 
 Ao subir, o backend cria usuários, bairros, tipos e imóveis de exemplo:
 
@@ -41,12 +47,15 @@ Ao subir, o backend cria usuários, bairros, tipos e imóveis de exemplo:
 > **Porta 8080 ocupada?** (o Tomcat do XAMPP, por exemplo) Suba o backend em outra porta e avise o front:
 >
 > ```bash
+> cd backend
 > mvn spring-boot:run "-Dspring-boot.run.arguments=--server.port=8090"
 > ```
 >
 > e crie um arquivo `.env.local` na raiz do front com `API_PROXY_TARGET=http://localhost:8090`. Esse arquivo não vai para o git.
 
 ### 2. Front-end
+
+Em outro terminal, na raiz do repositório:
 
 ```bash
 npm install
@@ -155,6 +164,13 @@ Ao aprovar ou cancelar um contrato, o **backend** envia um e-mail ao cliente (co
 ## Estrutura
 
 ```
+backend/        API Spring Boot (pom.xml, src/main/java, testes, coleção do Postman)
+src/            Front-end:
+```
+
+O front-end:
+
+```
 src/
   components/   Header, ProtectedRoute, ImovelCard, Filtros, Paginacao, Galeria, Feedback,
                 ConfirmarExclusao, Graficos (indicadores, barras, colunas), PainelGestao
@@ -172,7 +188,7 @@ src/
 
 ## Testes
 
-As regras de negócio são testadas no **backend** (`mvn test`): fluxo da oferta ao contrato, gestão de usuários e de imóveis, PDF e e-mail. No front, `npm run lint` e `npm run build` verificam o código.
+As regras de negócio são testadas no **backend** (`cd backend` e `mvn test`): fluxo da oferta ao contrato, gestão de usuários e de imóveis, PDF e e-mail. No front, `npm run lint` e `npm run build` verificam o código.
 
 ## Andamento
 
