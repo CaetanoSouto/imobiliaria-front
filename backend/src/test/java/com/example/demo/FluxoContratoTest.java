@@ -33,6 +33,7 @@ import com.example.demo.repositories.OfertaRepository;
 import com.example.demo.repositories.UserRepository;
 import com.example.demo.services.ContratoPdfService;
 import com.example.demo.services.ContratoService;
+import com.example.demo.services.EmailRenderer;
 import com.example.demo.services.EmailService;
 import com.example.demo.services.NotificacaoService;
 import com.example.demo.services.OfertaService;
@@ -62,7 +63,11 @@ class FluxoContratoTest {
         contratoRepo = mock(ContratoRepository.class);
         pdfService = mock(ContratoPdfService.class);
         emailService = mock(EmailService.class);
-        NotificacaoService notificacao = new NotificacaoService(emailService);
+        // o HTML do e-mail tem teste proprio (EmailsTest); aqui o gerador é simulado
+        EmailRenderer renderer = mock(EmailRenderer.class);
+        when(renderer.html(any())).thenReturn("<p>html</p>");
+        when(renderer.texto(any())).thenReturn("texto");
+        NotificacaoService notificacao = new NotificacaoService(emailService, renderer);
         when(pdfService.gerar(any(ContratoModel.class))).thenReturn(new byte[] { 1, 2, 3 });
         ofertas = new OfertaService(ofertaRepo, imovelRepo, userRepo, contratoRepo, notificacao);
         contratos = new ContratoService(contratoRepo, ofertaRepo, imovelRepo, userRepo, pdfService, notificacao);
@@ -227,7 +232,7 @@ class FluxoContratoTest {
         contratos.aprovar(5);
 
         verify(pdfService).gerar(c);
-        verify(emailService).enviarComAnexo(eq("cliente@email.com"), any(), any(), eq("contrato-5.pdf"), any());
+        verify(emailService).enviarHtml(eq("cliente@email.com"), any(), any(), any(), eq("contrato-5.pdf"), any());
         assertEquals(Boolean.TRUE, c.getEmailEnviado());
     }
 
@@ -240,13 +245,13 @@ class FluxoContratoTest {
 
         assertEquals(ContratoModel.AGUARDANDO_ASSINATURA, c.getStatus());
         assertEquals(Boolean.FALSE, c.getEmailEnviado());
-        verify(emailService, never()).enviarComAnexo(any(), any(), any(), any(), any());
+        verify(emailService, never()).enviarHtml(any(), any(), any(), any(), any(), any());
     }
 
     @Test
     void falhaNoEnvioDoEmailNaoImpedeAAprovacao() throws Exception {
         when(emailService.configurado()).thenReturn(true);
-        doThrow(new RuntimeException("SMTP fora do ar")).when(emailService).enviarComAnexo(any(), any(), any(), any(), any());
+        doThrow(new RuntimeException("SMTP fora do ar")).when(emailService).enviarHtml(any(), any(), any(), any(), any(), any());
         ContratoModel c = contrato(5, oferta(1, cliente, OfertaModel.ACEITA), ContratoModel.AGUARDANDO_APROVACAO);
 
         contratos.aprovar(5);
@@ -256,44 +261,44 @@ class FluxoContratoTest {
     }
 
     @Test
-    void cancelarAvisaOClientePorEmail() {
+    void cancelarAvisaOClientePorEmail() throws Exception {
         when(emailService.configurado()).thenReturn(true);
         ContratoModel c = contrato(5, oferta(1, cliente, OfertaModel.ACEITA), ContratoModel.AGUARDANDO_APROVACAO);
         cliente.setEmail("cliente@email.com");
 
         contratos.cancelar(5);
 
-        verify(emailService).enviarEmailTexto(eq("cliente@email.com"), any(), any());
+        verify(emailService).enviarHtml(eq("cliente@email.com"), any(), any(), any(), any(), any());
         assertEquals(Boolean.TRUE, c.getEmailEnviado());
     }
 
     // ---------- avisos por e-mail ao cliente ----------
     @Test
-    void aceitarAvisaOClientePorEmail() {
+    void aceitarAvisaOClientePorEmail() throws Exception {
         when(emailService.configurado()).thenReturn(true);
         cliente.setNome("Cliente");
         OfertaModel o = oferta(1, cliente, OfertaModel.PENDENTE);
 
         ofertas.aceitar(1, null);
 
-        verify(emailService).enviarEmailTexto(eq("cliente@email.com"), eq("Sua oferta foi aceita - Casa de teste"), any());
+        verify(emailService).enviarHtml(eq("cliente@email.com"), eq("Sua oferta foi aceita - Casa de teste"), any(), any(), any(), any());
         assertEquals(Boolean.TRUE, o.getEmailEnviado());
     }
 
     @Test
-    void recusarAvisaOClientePorEmail() {
+    void recusarAvisaOClientePorEmail() throws Exception {
         when(emailService.configurado()).thenReturn(true);
         cliente.setNome("Cliente");
         OfertaModel o = oferta(1, cliente, OfertaModel.PENDENTE);
 
         ofertas.recusar(1);
 
-        verify(emailService).enviarEmailTexto(eq("cliente@email.com"), eq("Sua oferta foi recusada - Casa de teste"), any());
+        verify(emailService).enviarHtml(eq("cliente@email.com"), eq("Sua oferta foi recusada - Casa de teste"), any(), any(), any(), any());
         assertEquals(Boolean.TRUE, o.getEmailEnviado());
     }
 
     @Test
-    void aceitarFuncionaSemSmtpEAvisaQueNaoEnviou() {
+    void aceitarFuncionaSemSmtpEAvisaQueNaoEnviou() throws Exception {
         when(emailService.configurado()).thenReturn(false);
         OfertaModel o = oferta(1, cliente, OfertaModel.PENDENTE);
 
@@ -301,13 +306,13 @@ class FluxoContratoTest {
 
         assertEquals(OfertaModel.ACEITA, o.getStatus());
         assertEquals(Boolean.FALSE, o.getEmailEnviado());
-        verify(emailService, never()).enviarEmailTexto(any(), any(), any());
+        verify(emailService, never()).enviarHtml(any(), any(), any(), any(), any(), any());
     }
 
     @Test
-    void falhaNoEmailNaoImpedeARecusa() {
+    void falhaNoEmailNaoImpedeARecusa() throws Exception {
         when(emailService.configurado()).thenReturn(true);
-        doThrow(new RuntimeException("SMTP fora do ar")).when(emailService).enviarEmailTexto(any(), any(), any());
+        doThrow(new RuntimeException("SMTP fora do ar")).when(emailService).enviarHtml(any(), any(), any(), any(), any(), any());
         OfertaModel o = oferta(1, cliente, OfertaModel.PENDENTE);
 
         ofertas.recusar(1);
@@ -317,13 +322,13 @@ class FluxoContratoTest {
     }
 
     @Test
-    void ofertaRecusadaPorEstadoInvalidoNaoEnviaEmail() {
+    void ofertaRecusadaPorEstadoInvalidoNaoEnviaEmail() throws Exception {
         when(emailService.configurado()).thenReturn(true);
         oferta(1, cliente, OfertaModel.ACEITA);
 
         assertThrows(RegraNegocioException.class, () -> ofertas.recusar(1));
 
-        verify(emailService, never()).enviarEmailTexto(any(), any(), any());
+        verify(emailService, never()).enviarHtml(any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -334,8 +339,8 @@ class FluxoContratoTest {
 
         contratos.assinar(5, "cliente@email.com");
 
-        verify(emailService).enviarComAnexo(eq("cliente@email.com"), eq("Contrato assinado - Casa de teste"),
-                any(), eq("contrato-5.pdf"), any());
+        verify(emailService).enviarHtml(eq("cliente@email.com"), eq("Contrato assinado - Casa de teste"),
+                any(), any(), eq("contrato-5.pdf"), any());
         assertEquals(Boolean.TRUE, c.getEmailEnviado());
     }
 
@@ -348,7 +353,7 @@ class FluxoContratoTest {
 
         assertEquals(ContratoModel.ASSINADO, c.getStatus());
         assertEquals(Boolean.FALSE, c.getEmailEnviado());
-        verify(emailService, never()).enviarComAnexo(any(), any(), any(), any(), any());
+        verify(emailService, never()).enviarHtml(any(), any(), any(), any(), any(), any());
     }
 
     @Test
@@ -358,7 +363,7 @@ class FluxoContratoTest {
 
         assertThrows(RegraNegocioException.class, () -> contratos.assinar(5, "cliente@email.com"));
 
-        verify(emailService, never()).enviarComAnexo(any(), any(), any(), any(), any());
+        verify(emailService, never()).enviarHtml(any(), any(), any(), any(), any(), any());
     }
 
     // ---------- PDF ----------

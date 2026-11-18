@@ -13,33 +13,33 @@ public class NotificacaoService {
     private static final Logger log = LoggerFactory.getLogger(NotificacaoService.class);
 
     private final EmailService emailService;
+    private final EmailRenderer renderer;
 
-    public NotificacaoService(EmailService emailService) {
+    public NotificacaoService(EmailService emailService, EmailRenderer renderer) {
         this.emailService = emailService;
+        this.renderer = renderer;
     }
 
-    public boolean enviar(String para, String assunto, String corpo) {
-        return enviar(para, assunto, corpo, null, null);
+    public boolean enviar(String para, AvisoEmail aviso) {
+        return enviar(para, aviso, null, null);
     }
 
     // Com `anexo` envia o arquivo junto (ex.: o PDF do contrato). Devolve true se o e-mail saiu.
-    public boolean enviar(String para, String assunto, String corpo, String nomeAnexo, byte[] anexo) {
+    public boolean enviar(String para, AvisoEmail aviso, String nomeAnexo, byte[] anexo) {
         if (para == null || para.isBlank()) {
             return false;
         }
         if (!emailService.configurado()) {
-            log.warn("E-mail \"{}\" não enviado: SMTP não configurado (defina MAIL_USER e MAIL_PASSWORD).", assunto);
+            log.warn("E-mail \"{}\" não enviado: SMTP não configurado (defina MAIL_USER e MAIL_PASSWORD).",
+                    aviso.getAssunto());
             return false;
         }
         try {
-            if (anexo != null) {
-                emailService.enviarComAnexo(para, assunto, corpo, nomeAnexo, anexo);
-            } else {
-                emailService.enviarEmailTexto(para, assunto, corpo);
-            }
+            emailService.enviarHtml(para, aviso.getAssunto(), renderer.texto(aviso), renderer.html(aviso),
+                    nomeAnexo, anexo);
             return true;
         } catch (Exception e) {
-            log.warn("Falha ao enviar o e-mail \"{}\": {}", assunto, e.getMessage());
+            log.warn("Falha ao enviar o e-mail \"{}\": {}", aviso.getAssunto(), e.getMessage());
             return false;
         }
     }

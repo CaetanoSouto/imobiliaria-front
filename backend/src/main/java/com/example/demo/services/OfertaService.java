@@ -1,10 +1,8 @@
 package com.example.demo.services;
 
 import java.math.BigDecimal;
-import java.text.NumberFormat;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Locale;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -153,15 +151,7 @@ public class OfertaService {
         contrato.setDataCriacao(LocalDateTime.now());
         contratoRepository.save(contrato);
 
-        String titulo = imovel.getTitulo();
-        oferta.setEmailEnviado(avisarCliente(oferta,
-                "Sua oferta foi aceita - " + titulo,
-                "Olá, " + oferta.getUsuario().getNome() + "!\n\n"
-                        + "A imobiliária aceitou a sua oferta de " + moeda(oferta.getValorProposto())
-                        + " pelo imóvel \"" + titulo + "\".\n"
-                        + "O contrato está sendo preparado e passará pela aprovação da administração. "
-                        + "Você receberá um novo e-mail quando ele estiver liberado para assinatura.\n\n"
-                        + "Atenciosamente,\nImobiliária"));
+        oferta.setEmailEnviado(notificacao.enviar(oferta.getUsuario().getEmail(), AvisosCliente.ofertaAceita(oferta)));
         return oferta;
     }
 
@@ -173,27 +163,11 @@ public class OfertaService {
         oferta.setStatus(OfertaModel.RECUSADA);
         ofertaRepository.save(oferta);
 
-        String titulo = oferta.getImovel().getTitulo();
-        oferta.setEmailEnviado(avisarCliente(oferta,
-                "Sua oferta foi recusada - " + titulo,
-                "Olá, " + oferta.getUsuario().getNome() + ".\n\n"
-                        + "A imobiliária não pôde aceitar a sua oferta de " + moeda(oferta.getValorProposto())
-                        + " pelo imóvel \"" + titulo + "\".\n"
-                        + "Você pode fazer uma nova oferta ou conhecer outros imóveis no nosso site.\n\n"
-                        + "Atenciosamente,\nImobiliária"));
+        oferta.setEmailEnviado(notificacao.enviar(oferta.getUsuario().getEmail(), AvisosCliente.ofertaRecusada(oferta)));
         return oferta;
     }
 
     // ---- util ----
-
-    // Avisa o dono da oferta por e-mail. Devolve se o e-mail saiu (nunca derruba a operação).
-    private boolean avisarCliente(OfertaModel oferta, String assunto, String corpo) {
-        return notificacao.enviar(oferta.getUsuario().getEmail(), assunto, corpo);
-    }
-
-    private String moeda(BigDecimal valor) {
-        return valor == null ? "—" : NumberFormat.getCurrencyInstance(Locale.forLanguageTag("pt-BR")).format(valor);
-    }
 
     private OfertaModel buscar(Integer id) {
         return ofertaRepository.findById(id)
