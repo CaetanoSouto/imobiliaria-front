@@ -8,7 +8,7 @@ import { useCarregar } from '../hooks/useCarregar'
 import { buscarImovel } from '../services/imoveisService'
 import { formatarPreco, rotuloStatus } from '../utils/formatar'
 import { fotosDoImovel, rotuloFinalidade, valorImovel } from '../utils/imoveis'
-import { montarLinkContato } from '../utils/contato'
+import { montarLinkContato, montarLinkGmail } from '../utils/contato'
 
 const numero = new Intl.NumberFormat('pt-BR')
 
@@ -61,6 +61,7 @@ export default function DetalheImovel() {
   const disponivel = imovel.status === 'DISPONIVEL'
   const enderecoCompleto = [imovel.endereco, imovel.numero, imovel.complemento].filter(Boolean).join(', ')
   const linkContato = montarLinkContato(imovel)
+  const linkGmail = montarLinkGmail(imovel)
 
   return (
     <section className="container detalhe">
@@ -95,9 +96,18 @@ export default function DetalheImovel() {
             <span className={`status status--${(imovel.status || '').toLowerCase()}`}>{rotuloStatus(imovel.status)}</span>
             <span className="card__codigo"> Cód. {imovel.id}</span>
           </p>
-          <a className="botao botao--destaque botao--bloco" href={linkContato}>
+          <a
+            className="botao botao--destaque botao--bloco"
+            href={linkGmail}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             Entrar em contato
           </a>
+          <p className="card__codigo">
+            Abre o Gmail com a mensagem pronta. Prefere outro programa?{' '}
+            <a href={linkContato}>Usar o e-mail do computador</a>
+          </p>
           {!disponivel && (
             <p className="card__codigo">Este imóvel não está disponível para novas ofertas.</p>
           )}
