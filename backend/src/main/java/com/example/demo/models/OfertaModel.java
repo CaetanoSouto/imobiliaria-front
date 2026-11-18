@@ -15,6 +15,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -63,4 +64,8 @@ public class OfertaModel implements Serializable {
 
     @Column(name = "data_criacao", nullable = false)
     private LocalDateTime dataCriacao;
+
+    // Só na resposta de aceitar/recusar (não vai para o banco): o cliente foi avisado por e-mail?
+    @Transient
+    private Boolean emailEnviado;
 }

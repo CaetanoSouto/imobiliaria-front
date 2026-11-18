@@ -3,8 +3,6 @@ package com.example.demo.services;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,19 +29,17 @@ public class ContratoService {
     private final UserRepository userRepository;
 
     private final ContratoPdfService pdfService;
-    private final EmailService emailService;
-
-    private static final Logger log = LoggerFactory.getLogger(ContratoService.class);
+    private final NotificacaoService notificacao;
 
     public ContratoService(ContratoRepository contratoRepository, OfertaRepository ofertaRepository,
             ImovelRepository imovelRepository, UserRepository userRepository,
-            ContratoPdfService pdfService, EmailService emailService) {
+            ContratoPdfService pdfService, NotificacaoService notificacao) {
         this.contratoRepository = contratoRepository;
         this.ofertaRepository = ofertaRepository;
         this.imovelRepository = imovelRepository;
         this.userRepository = userRepository;
         this.pdfService = pdfService;
-        this.emailService = emailService;
+        this.notificacao = notificacao;
     }
 
     @Transactional(readOnly = true)
@@ -72,14 +68,8 @@ public class ContratoService {
         contrato.setPdf(pdfService.gravar(contrato, pdf));
         contratoRepository.save(contrato);
 
-        String imovel = contrato.getOferta().getImovel().getTitulo();
-        contrato.setEmailEnviado(notificar(contrato,
-                "Seu contrato foi aprovado - " + imovel,
-                "Olá, " + contrato.getOferta().getUsuario().getNome() + "!\n\n"
-                        + "O contrato do imóvel \"" + imovel + "\" foi aprovado e já está disponível para assinatura.\n"
-                        + "Ele segue em anexo em PDF. Para assinar, entre no sistema e abra \"Contratos\".\n\n"
-                        + "Atenciosamente,\nImobiliária",
-                "contrato-" + contrato.getId() + ".pdf", pdf));
+        contrato.setEmailEnviado(notificacao.enviar(contrato.getOferta().getUsuario().getEmail(),
+                AvisosCliente.contratoAprovado(contrato), "contrato-" + contrato.getId() + ".pdf", pdf));
         return contrato;
     }
 
@@ -96,30 +86,6 @@ public class ContratoService {
             }
         }
         return pdfService.gerar(contrato);
-    }
-
-    // Envia o aviso ao cliente. Nunca derruba a operação: devolve se o e-mail saiu ou não.
-    private boolean notificar(ContratoModel contrato, String assunto, String corpo, String nomeAnexo, byte[] anexo) {
-        String para = contrato.getOferta().getUsuario().getEmail();
-        if (para == null || para.isBlank()) {
-            return false;
-        }
-        if (!emailService.configurado()) {
-            log.warn("E-mail do contrato {} não enviado: SMTP não configurado (defina MAIL_USER e MAIL_PASSWORD).",
-                    contrato.getId());
-            return false;
-        }
-        try {
-            if (anexo != null) {
-                emailService.enviarComAnexo(para, assunto, corpo, nomeAnexo, anexo);
-            } else {
-                emailService.enviarEmailTexto(para, assunto, corpo);
-            }
-            return true;
-        } catch (Exception e) {
-            log.warn("Falha ao enviar o e-mail do contrato {}: {}", contrato.getId(), e.getMessage());
-            return false;
-        }
     }
 
     // Assinar: o imóvel vira ALUGADO ou VENDIDO conforme o tipo da oferta e todas as
@@ -150,6 +116,11 @@ public class ContratoService {
                 ofertaRepository.save(outra);
             }
         }
+
+        // confirma a assinatura ao cliente, com o contrato assinado em anexo
+        contrato.setEmailEnviado(notificacao.enviar(oferta.getUsuario().getEmail(),
+                AvisosCliente.contratoAssinado(contrato), "contrato-" + contrato.getId() + ".pdf",
+                pdfService.gerar(contrato)));
         return contrato;
     }
 
@@ -179,14 +150,8 @@ public class ContratoService {
                 ofertaRepository.save(outra);
             }
         }
-        String titulo = imovel.getTitulo();
-        contrato.setEmailEnviado(notificar(contrato,
-                "Seu contrato foi cancelado - " + titulo,
-                "Olá, " + oferta.getUsuario().getNome() + ".\n\n"
-                        + "O contrato do imóvel \"" + titulo + "\" foi cancelado pela imobiliária.\n"
-                        + "Em caso de dúvidas, entre em contato conosco.\n\n"
-                        + "Atenciosamente,\nImobiliária",
-                null, null));
+        contrato.setEmailEnviado(notificacao.enviar(oferta.getUsuario().getEmail(),
+                AvisosCliente.contratoCancelado(contrato)));
         return contrato;
     }
 

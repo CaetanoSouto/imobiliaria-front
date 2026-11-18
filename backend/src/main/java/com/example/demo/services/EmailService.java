@@ -1,5 +1,6 @@
 package com.example.demo.services;
 
+import java.io.UnsupportedEncodingException;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -23,6 +24,9 @@ public class EmailService {
     @Value("${app.mail.from:no-reply@imobiliaria.com}")
     private String remetente;
 
+    @Value("${app.nome-imobiliaria:Habitare}")
+    private String nomeRemetente;
+
     // Sem usuário SMTP configurado (MAIL_USER) nenhum e-mail sai.
     @Value("${spring.mail.username:}")
     private String usuarioSmtp;
@@ -34,6 +38,26 @@ public class EmailService {
 
     public boolean configurado() {
         return usuarioSmtp != null && !usuarioSmtp.isBlank();
+    }
+
+    // E-mail em HTML com uma versão em texto simples (para leitores sem HTML) e, se houver, um arquivo
+    // em anexo (ex.: o PDF do contrato). O remetente aparece com o nome da imobiliária.
+    public void enviarHtml(String para, String assunto, String texto, String html,
+            String nomeAnexo, byte[] anexo) throws MessagingException {
+        MimeMessage mime = mailSender.createMimeMessage();
+        MimeMessageHelper helper = new MimeMessageHelper(mime, true, "UTF-8");
+        try {
+            helper.setFrom(remetente, nomeRemetente + " Imóveis");
+        } catch (UnsupportedEncodingException e) {
+            helper.setFrom(remetente);
+        }
+        helper.setTo(para);
+        helper.setSubject(assunto);
+        helper.setText(texto, html);
+        if (anexo != null) {
+            helper.addAttachment(nomeAnexo, new ByteArrayResource(anexo));
+        }
+        mailSender.send(mime);
     }
 
     // E-mail de texto com um arquivo em anexo (ex.: o PDF do contrato).

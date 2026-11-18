@@ -34,13 +34,16 @@ public class OfertaService {
     private final ImovelRepository imovelRepository;
     private final UserRepository userRepository;
     private final ContratoRepository contratoRepository;
+    private final NotificacaoService notificacao;
 
     public OfertaService(OfertaRepository ofertaRepository, ImovelRepository imovelRepository,
-            UserRepository userRepository, ContratoRepository contratoRepository) {
+            UserRepository userRepository, ContratoRepository contratoRepository,
+            NotificacaoService notificacao) {
         this.ofertaRepository = ofertaRepository;
         this.imovelRepository = imovelRepository;
         this.userRepository = userRepository;
         this.contratoRepository = contratoRepository;
+        this.notificacao = notificacao;
     }
 
     // ---- Cliente ----
@@ -148,6 +151,7 @@ public class OfertaService {
         contrato.setDataCriacao(LocalDateTime.now());
         contratoRepository.save(contrato);
 
+        oferta.setEmailEnviado(notificacao.enviar(oferta.getUsuario().getEmail(), AvisosCliente.ofertaAceita(oferta)));
         return oferta;
     }
 
@@ -157,7 +161,10 @@ public class OfertaService {
             throw new RegraNegocioException("Só é possível recusar ofertas pendentes ou em espera.");
         }
         oferta.setStatus(OfertaModel.RECUSADA);
-        return ofertaRepository.save(oferta);
+        ofertaRepository.save(oferta);
+
+        oferta.setEmailEnviado(notificacao.enviar(oferta.getUsuario().getEmail(), AvisosCliente.ofertaRecusada(oferta)));
+        return oferta;
     }
 
     // ---- util ----

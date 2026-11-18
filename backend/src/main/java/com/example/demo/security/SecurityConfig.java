@@ -79,8 +79,9 @@ public class SecurityConfig {
                 .requestMatchers("/favoritos", "/favoritos/**").hasRole("USER")
                 // Cadastrar e gerenciar usuários -> só ADMIN
                 .requestMatchers("/auth/register", "/users", "/users/**").hasRole("ADMIN")
-                // rotas que já eram públicas no projeto
-                .requestMatchers(HttpMethod.GET, "/email/**").permitAll()
+                // rotas de teste de e-mail do projeto original: só ADMIN (com o SMTP ligado elas
+                // enviam e-mail de verdade, então não podem ficar abertas a qualquer pessoa)
+                .requestMatchers("/email", "/email/**").hasRole("ADMIN")
                 // página de erro do Spring (senão um 404/500 viraria 401)
                 .requestMatchers("/error").permitAll()
                 .anyRequest().authenticated()

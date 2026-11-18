@@ -82,12 +82,13 @@ export default function GestaoOfertas({ podeDecidir = false }) {
     setErroAcao(null)
   }
 
+  // `mensagem` pode ser uma função: aceitar e recusar dizem se o e-mail ao cliente saiu.
   const executar = async (acao, mensagem) => {
     setProcessando(true)
     setErroAcao(null)
     try {
-      await acao()
-      setSucesso(mensagem)
+      const resultado = await acao()
+      setSucesso(typeof mensagem === 'function' ? mensagem(resultado) : mensagem)
       fechar()
       recarregar()
     } catch (e) {
@@ -206,7 +207,12 @@ export default function GestaoOfertas({ podeDecidir = false }) {
           onConfirmar={(condicoes) =>
             executar(
               () => aceitarOferta(aceitar.id, condicoes.trim()),
-              'Oferta aceita. O contrato foi preparado e aguarda a aprovação do administrador.',
+              (o) =>
+                `Oferta aceita. O contrato foi preparado e aguarda a aprovação do administrador. ${
+                  o?.emailEnviado
+                    ? 'O cliente foi avisado por e-mail.'
+                    : 'O e-mail ao cliente NÃO foi enviado (SMTP não configurado ou fora do ar).'
+                }`,
             )
           }
           onCancelar={fechar}
@@ -222,7 +228,17 @@ export default function GestaoOfertas({ podeDecidir = false }) {
           textoConfirmar="Recusar oferta"
           textoAndamento="Recusando..."
           textoVoltar="Voltar"
-          onConfirmar={() => executar(() => recusarOferta(recusar.id), 'Oferta recusada.')}
+          onConfirmar={() =>
+            executar(
+              () => recusarOferta(recusar.id),
+              (o) =>
+                `Oferta recusada. ${
+                  o?.emailEnviado
+                    ? 'O cliente foi avisado por e-mail.'
+                    : 'O e-mail ao cliente NÃO foi enviado (SMTP não configurado ou fora do ar).'
+                }`,
+            )
+          }
           onCancelar={fechar}
         />
       )}
