@@ -78,7 +78,7 @@ npm run lint      # verifica o código com o oxlint
 | Variável | Para que serve | Padrão |
 | --- | --- | --- |
 | `VITE_API_URL` | URL base da API. Em desenvolvimento use `/api` (proxy do Vite). | `/api` |
-| `VITE_IMOBILIARIA_EMAIL` | E-mail que recebe o contato "Entrar em contato" (link `mailto:`) do detalhe do imóvel. | `contato@imobiliaria.com` |
+| `VITE_IMOBILIARIA_EMAIL` | E-mail da imobiliária, que recebe o contato do botão "Entrar em contato" do detalhe do imóvel. Reinicie o `npm run dev` depois de mudar. | `contato@imobiliaria.com` |
 | `API_PROXY_TARGET` | Endereço do backend usado pelo proxy do Vite, só em desenvolvimento. | `http://localhost:8080` |
 
 ## Comunicação com a API
@@ -102,7 +102,7 @@ Toda requisição autenticada envia o token JWT. Quando a API responde:
 
 - **Vitrine** (`/`): cards com foto de capa, tipo, bairro, cidade, valor e finalidade; só imóveis disponíveis.
 - **Detalhe** (`/imoveis/:id`): galeria de fotos e todas as informações; "Imóvel não encontrado" em caso de 404.
-- **Entrar em contato**: abre o e-mail com assunto e corpo já preenchidos (código, tipo, bairro e valor).
+- **Entrar em contato**: abre o **Gmail no navegador** com assunto e corpo já preenchidos (código, tipo, bairro e valor), sem precisar de programa de e-mail instalado. Há também o link "Usar o e-mail do computador" (`mailto:`) para quem prefere o programa de e-mail.
 - **Filtros** combinados (bairro, finalidade e faixa de preço validada) com botão **Limpar filtros**.
 - **Ordenação** por preço, crescente e decrescente.
 - **Paginação** de 9 em 9. Filtros, ordem e página ficam na URL (`?bairro=1&finalidade=VENDA&ordem=preco-asc&pagina=2`).
@@ -160,6 +160,21 @@ Se o cliente desistir, o admin cancela o contrato: o imóvel volta a ficar dispo
 ## E-mail do contrato
 
 Ao aprovar ou cancelar um contrato, o **backend** envia um e-mail ao cliente (com o PDF em anexo, no caso da aprovação). Isso só funciona com SMTP configurado no backend, pelas variáveis `MAIL_USER`, `MAIL_PASSWORD`, `MAIL_HOST`, `MAIL_PORT` e `MAIL_FROM`. Sem `MAIL_USER`, nada é enviado: a aprovação continua valendo e a tela avisa que o e-mail **não** saiu.
+
+### Configurar com o Gmail
+
+1. Na conta Google, ative a **verificação em duas etapas** e gere uma **senha de app** em myaccount.google.com > Senhas de app (16 letras; a senha normal da conta não funciona).
+2. Em `backend/`, copie `mail.env.local.example` para `mail.env.local` e preencha `MAIL_USER` (seu Gmail) e `MAIL_PASSWORD` (a senha de app). O `mail.env.local` **não vai para o git**.
+3. Suba o backend com o script, que carrega esse arquivo:
+
+```powershell
+cd backend
+.\rodar.ps1                # porta 8080
+.\rodar.ps1 -Porta 8090    # outra porta, se a 8080 estiver ocupada
+.\rodar.ps1 -SoVerificar   # só mostra o que foi carregado (sem mostrar a senha)
+```
+
+Para testar, aprove um contrato em *Admin > Contratos*, de um cliente com e-mail real. Se a tela disser que o e-mail não foi enviado, o motivo aparece no terminal do backend (`Falha ao enviar o e-mail do contrato`).
 
 ## Estrutura
 
