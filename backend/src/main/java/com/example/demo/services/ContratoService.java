@@ -3,8 +3,6 @@ package com.example.demo.services;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,19 +29,17 @@ public class ContratoService {
     private final UserRepository userRepository;
 
     private final ContratoPdfService pdfService;
-    private final EmailService emailService;
-
-    private static final Logger log = LoggerFactory.getLogger(ContratoService.class);
+    private final NotificacaoService notificacao;
 
     public ContratoService(ContratoRepository contratoRepository, OfertaRepository ofertaRepository,
             ImovelRepository imovelRepository, UserRepository userRepository,
-            ContratoPdfService pdfService, EmailService emailService) {
+            ContratoPdfService pdfService, NotificacaoService notificacao) {
         this.contratoRepository = contratoRepository;
         this.ofertaRepository = ofertaRepository;
         this.imovelRepository = imovelRepository;
         this.userRepository = userRepository;
         this.pdfService = pdfService;
-        this.emailService = emailService;
+        this.notificacao = notificacao;
     }
 
     @Transactional(readOnly = true)
@@ -104,22 +100,7 @@ public class ContratoService {
         if (para == null || para.isBlank()) {
             return false;
         }
-        if (!emailService.configurado()) {
-            log.warn("E-mail do contrato {} não enviado: SMTP não configurado (defina MAIL_USER e MAIL_PASSWORD).",
-                    contrato.getId());
-            return false;
-        }
-        try {
-            if (anexo != null) {
-                emailService.enviarComAnexo(para, assunto, corpo, nomeAnexo, anexo);
-            } else {
-                emailService.enviarEmailTexto(para, assunto, corpo);
-            }
-            return true;
-        } catch (Exception e) {
-            log.warn("Falha ao enviar o e-mail do contrato {}: {}", contrato.getId(), e.getMessage());
-            return false;
-        }
+        return notificacao.enviar(para, assunto, corpo, nomeAnexo, anexo);
     }
 
     // Assinar: o imóvel vira ALUGADO ou VENDIDO conforme o tipo da oferta e todas as
@@ -150,6 +131,16 @@ public class ContratoService {
                 ofertaRepository.save(outra);
             }
         }
+
+        // confirma a assinatura ao cliente, com o contrato assinado em anexo
+        String titulo = imovel.getTitulo();
+        contrato.setEmailEnviado(notificar(contrato,
+                "Contrato assinado - " + titulo,
+                "Olá, " + oferta.getUsuario().getNome() + "!\n\n"
+                        + "Recebemos a sua assinatura no contrato do imóvel \"" + titulo + "\".\n"
+                        + "Uma cópia do contrato assinado segue em anexo, em PDF.\n\n"
+                        + "Atenciosamente,\nImobiliária",
+                "contrato-" + contrato.getId() + ".pdf", pdfService.gerar(contrato)));
         return contrato;
     }
 
