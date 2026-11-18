@@ -159,7 +159,17 @@ Se o cliente desistir, o admin cancela o contrato: o imóvel volta a ficar dispo
 
 ## E-mail do contrato
 
-Ao aprovar ou cancelar um contrato, o **backend** envia um e-mail ao cliente (com o PDF em anexo, no caso da aprovação). Isso só funciona com SMTP configurado no backend, pelas variáveis `MAIL_USER`, `MAIL_PASSWORD`, `MAIL_HOST`, `MAIL_PORT` e `MAIL_FROM`. Sem `MAIL_USER`, nada é enviado: a aprovação continua valendo e a tela avisa que o e-mail **não** saiu.
+O **backend** avisa o cliente por e-mail nestes momentos:
+
+| Quando | E-mail |
+| --- | --- |
+| Corretor ou admin **aceita** a oferta | "Sua oferta foi aceita" |
+| Corretor ou admin **recusa** a oferta | "Sua oferta foi recusada" |
+| Admin **aprova** o contrato | "Seu contrato foi aprovado", com o PDF em anexo |
+| Cliente **assina** o contrato | "Contrato assinado", com o PDF do contrato assinado |
+| Admin **cancela ou reprova** o contrato | "Seu contrato foi cancelado" |
+
+As rotas de teste de e-mail do projeto original (`/email`, `/email/template`, `/email/gemini`) só podem ser usadas por administradores. Os avisos só funcionam com SMTP configurado no backend, pelas variáveis `MAIL_USER`, `MAIL_PASSWORD`, `MAIL_HOST`, `MAIL_PORT` e `MAIL_FROM`. Sem `MAIL_USER`, nada é enviado: a aprovação continua valendo e a tela avisa que o e-mail **não** saiu.
 
 ### Configurar com o Gmail
 
